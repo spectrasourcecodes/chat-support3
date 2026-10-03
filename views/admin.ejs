@@ -1,0 +1,432 @@
+<%- include('partials/header') %>
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3>Admin Dashboard</h3>
+                <span class="badge bg-primary">Total Customers: <%= customers.length %></span>
+            </div>
+            <div class="card-body" id="adminContent" style="display: none;">
+                <% if (customers.length > 0) { %>
+                    <div class="list-group">
+                        <% customers.forEach(customer => { %>
+                            <div class="list-group-item d-flex justify-content-between align-items-start">
+                                <div class="ms-2 me-auto">
+                                    <div class="d-flex align-items-center">
+                                        <h5 class="mb-1"><%= customer.username %></h5>
+                                        <% if (customer.unreadCount > 0) { %>
+                                            <span class="badge bg-danger ms-2" id="unread-badge-<%= customer._id %>">
+                                                <%= customer.unreadCount %> unread
+                                            </span>
+                                        <% } %>
+                                    </div>
+                                    <small class="text-muted">Joined: <%= new Date(customer.createdAt).toLocaleDateString() %></small>
+                                    <% if (customer.lastMessage) { %>
+                                        <div class="mt-2">
+                                            <small class="d-block" style="max-width: 400px; word-wrap: break-word; overflow: hidden;">
+                                                <strong>
+                                                    <%= customer.lastMessage.sender.username === customer.username ? customer.username : 'You' %>:
+                                                </strong>
+                                                <% 
+                                                    let messageContent = customer.lastMessage.content;
+                                                    if (messageContent === 'Image') { 
+                                                        messageContent = '📷 Image';
+                                                    } else {
+                                                        // Split message into words and get first 3
+                                                        const words = messageContent.split(' ');
+                                                        if (words.length > 3) {
+                                                            messageContent = words.slice(0, 3).join(' ') + '...';
+                                                        }
+                                                    }
+                                                %>
+                                                <%= messageContent %>
+                                            </small>
+                                            <small class="text-muted">
+                                                <%= new Date(customer.lastMessage.timestamp).toLocaleString() %>
+                                            </small>
+                                        </div>
+                                    <% } else { %>
+                                        <div class="mt-2">
+                                            <small class="text-muted">No messages yet</small>
+                                        </div>
+                                    <% } %>
+                                </div>
+                                <div class="user-actions">
+                                    <a href="/admin/private/chat/<%= customer._id %>" class="btn btn-primary btn-sm me-1">
+                                        <i class="bi bi-chat-dots"></i> Chat
+                                    </a>
+                                    <% if (customer.unreadCount > 0) { %>
+                                        <button class="btn btn-success btn-sm me-1 mark-read-btn" 
+                                                data-user-id="<%= customer._id %>" 
+                                                title="Mark as read">
+                                            <i class="bi bi-check2-all"></i>
+                                        </button>
+                                    <% } %>
+                                    <button class="btn btn-danger btn-sm delete-user-btn" 
+                                            data-user-id="<%= customer._id %>" 
+                                            data-username="<%= customer.username %>">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        <% }); %>
+                    </div>
+                <% } else { %>
+                    <p class="text-center">No customers yet.</p>
+                <% } %>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PIN Verification Modal -->
+<div class="modal fade" id="pinModal" tabindex="-1" aria-labelledby="pinModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="pinModalLabel">
+                    <i class="bi bi-shield-lock"></i> Admin Verification
+                </h5>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <i class="bi bi-lock-fill" style="font-size: 4rem; color: #0d6efd;"></i>
+                    <p class="mt-3 text-muted">Please enter the admin PIN to access the dashboard</p>
+                </div>
+                <div class="mb-3">
+                    <label for="pinInput" class="form-label">Admin PIN</label>
+                    <input type="password" class="form-control form-control-lg" id="pinInput" 
+                           placeholder="Enter PIN" maxlength="6" autofocus>
+                    <div id="pinError" class="text-danger mt-2" style="display: none;">
+                        <i class="bi bi-exclamation-circle"></i> Invalid PIN. Please try again.
+                    </div>
+                </div>
+                <div class="d-grid">
+                    <button class="btn btn-primary btn-lg" id="verifyPinBtn">
+                        <i class="bi bi-check-circle"></i> Verify
+                    </button>
+                </div>
+                <div class="text-center mt-3">
+                    <small class="text-muted">Contact administrator if you don't have access</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Locked overlay (shown when PIN is required) -->
+<div id="lockedOverlay" style="display: block; text-align: center; padding: 50px 20px;">
+    <i class="bi bi-shield-lock" style="font-size: 5rem; color: #6c757d;"></i>
+    <h3 class="mt-3">Admin Dashboard Locked</h3>
+    <p class="text-muted">Please click the button below to verify your identity</p>
+    <button class="btn btn-primary btn-lg" id="unlockBtn">
+        <i class="bi bi-unlock"></i> Unlock Dashboard
+    </button>
+</div>
+
+<style>
+    /* Modal styles */
+    #pinModal .modal-content {
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    }
+    
+    #pinModal .modal-header {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+    
+    #pinModal .modal-body {
+        padding: 30px;
+    }
+    
+    #pinInput {
+        text-align: center;
+        letter-spacing: 10px;
+        font-size: 1.5rem;
+        font-weight: bold;
+        border-radius: 10px;
+    }
+    
+    #pinInput:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+    }
+    
+    #lockedOverlay {
+        background: white;
+        border-radius: 10px;
+        margin: 20px 0;
+    }
+    
+    /* Ensure the content is hidden when locked */
+    #adminContent {
+        display: none !important;
+    }
+    
+    #adminContent.visible {
+        display: block !important;
+    }
+    
+    @keyframes shake {
+        0%, 100% { transform: translateX(0); }
+        25% { transform: translateX(-10px); }
+        75% { transform: translateX(10px); }
+    }
+</style>
+
+<script>
+    // PIN configuration
+    const ADMIN_PIN = '697701';
+    
+    // DOM elements
+    const adminContent = document.getElementById('adminContent');
+    const lockedOverlay = document.getElementById('lockedOverlay');
+    const pinInput = document.getElementById('pinInput');
+    const verifyBtn = document.getElementById('verifyPinBtn');
+    const pinError = document.getElementById('pinError');
+    const unlockBtn = document.getElementById('unlockBtn');
+    
+    // Get modal element
+    const pinModalElement = document.getElementById('pinModal');
+    let pinModal = null;
+    
+    // Initialize modal only if Bootstrap is available
+    if (typeof bootstrap !== 'undefined' && bootstrap.Modal) {
+        pinModal = new bootstrap.Modal(pinModalElement, {
+            backdrop: 'static',
+            keyboard: false
+        });
+    } else {
+        // Fallback: Use simple show/hide if Bootstrap JS is not loaded
+        pinModal = {
+            show: function() {
+                pinModalElement.style.display = 'block';
+                pinModalElement.classList.add('show');
+                document.body.classList.add('modal-open');
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop fade show';
+                document.body.appendChild(backdrop);
+            },
+            hide: function() {
+                pinModalElement.style.display = 'none';
+                pinModalElement.classList.remove('show');
+                document.body.classList.remove('modal-open');
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                backdrops.forEach(b => b.remove());
+            }
+        };
+    }
+    
+    // Check if PIN is already verified in session
+    let isVerified = sessionStorage.getItem('adminVerified') === 'true';
+    
+    // Function to show admin content
+    function showAdminContent() {
+        adminContent.style.display = 'block';
+        adminContent.classList.add('visible');
+        lockedOverlay.style.display = 'none';
+        sessionStorage.setItem('adminVerified', 'true');
+        isVerified = true;
+    }
+    
+    // Function to hide admin content
+    function hideAdminContent() {
+        adminContent.style.display = 'none';
+        adminContent.classList.remove('visible');
+        lockedOverlay.style.display = 'block';
+        sessionStorage.removeItem('adminVerified');
+        isVerified = false;
+    }
+    
+    // Function to verify PIN
+    function verifyPin() {
+        const enteredPin = pinInput.value.trim();
+        
+        if (enteredPin === ADMIN_PIN) {
+            pinError.style.display = 'none';
+            pinModal.hide();
+            showAdminContent();
+            pinInput.value = '';
+            pinInput.classList.remove('is-invalid');
+        } else {
+            pinError.style.display = 'block';
+            pinInput.classList.add('is-invalid');
+            pinInput.value = '';
+            pinInput.focus();
+            // Shake animation
+            pinInput.style.animation = 'shake 0.5s';
+            setTimeout(() => {
+                pinInput.style.animation = '';
+            }, 500);
+        }
+    }
+    
+    // Event: Unlock button clicked
+    unlockBtn.addEventListener('click', function() {
+        pinModal.show();
+        setTimeout(() => {
+            pinInput.focus();
+        }, 500);
+    });
+    
+    // Event: Verify button clicked
+    verifyBtn.addEventListener('click', verifyPin);
+    
+    // Event: Enter key pressed in PIN input
+    pinInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            verifyPin();
+        }
+    });
+    
+    // Event: PIN input focus - clear error state
+    pinInput.addEventListener('focus', function() {
+        pinError.style.display = 'none';
+        this.classList.remove('is-invalid');
+    });
+    
+    // Event: Limit PIN input to numbers only
+    pinInput.addEventListener('input', function() {
+        this.value = this.value.replace(/[^0-9]/g, '');
+    });
+    
+    // Event: Modal hidden (when closed)
+    pinModalElement.addEventListener('hidden.bs.modal', function() {
+        pinError.style.display = 'none';
+        pinInput.classList.remove('is-invalid');
+        pinInput.value = '';
+    });
+    
+    // Check session on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        if (isVerified) {
+            showAdminContent();
+        } else {
+            hideAdminContent();
+            // Auto-show modal after a short delay
+            setTimeout(() => {
+                pinModal.show();
+                setTimeout(() => {
+                    pinInput.focus();
+                }, 500);
+            }, 500);
+        }
+    });
+    
+    // Handle user deletion
+    document.querySelectorAll('.delete-user-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const username = this.dataset.username;
+            
+            if (confirm(`Are you sure you want to delete user "${username}" and all their messages?`)) {
+                fetch(`/admin/private/delete-user/${userId}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload();
+                    } else {
+                        alert('Error: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred while deleting the user');
+                });
+            }
+        });
+    });
+
+    // Handle mark as read
+    document.querySelectorAll('.mark-read-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            
+            fetch(`/admin/private/mark-as-read/${userId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove the unread badge
+                    const unreadBadge = document.getElementById(`unread-badge-${userId}`);
+                    if (unreadBadge) {
+                        unreadBadge.remove();
+                    }
+                    
+                    // Remove the mark as read button
+                    this.remove();
+                    
+                    showNotification('Messages marked as read', 'success');
+                } else {
+                    showNotification('Error: ' + data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showNotification('An error occurred while marking messages as read', 'error');
+            });
+        });
+    });
+
+    function showNotification(message, type) {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : 'success'} alert-dismissible fade show`;
+        notification.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        // Add to page
+        const container = document.querySelector('.container');
+        container.insertBefore(notification, container.firstChild);
+        
+        // Auto remove after 5 seconds
+        setTimeout(() => {
+            notification.remove();
+        }, 5000);
+    }
+</script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    // Connect to Socket.IO for real-time updates
+    const socket = io();
+    
+    // Listen for new message notifications
+    socket.on('admin-notification', (data) => {
+        // Refresh the page to show updated message counts
+        location.reload();
+    });
+    
+    // Optional: Alternatively, you could update just the specific user's badge
+    // without refreshing the whole page
+    socket.on('admin-notification', (data) => {
+        const unreadBadge = document.getElementById(`unread-badge-${data.customerId}`);
+        if (unreadBadge) {
+            const currentCount = parseInt(unreadBadge.textContent) || 0;
+            unreadBadge.textContent = `${currentCount + 1} unread`;
+        } else {
+            // Create a new badge if it doesn't exist
+            const userElement = document.querySelector(`[data-user-id="${data.customerId}"]`);
+            if (userElement) {
+                const badge = document.createElement('span');
+                badge.className = 'badge bg-danger ms-2';
+                badge.id = `unread-badge-${data.customerId}`;
+                badge.textContent = '1 unread';
+                userElement.querySelector('h5').appendChild(badge);
+            }
+        }
+    });
+</script>
+<%- include('partials/footer') %>
