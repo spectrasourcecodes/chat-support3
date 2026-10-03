@@ -1,19 +1,19 @@
 /* ============================================================
-   Ouro Invest Support — Main Stylesheet
+   Ark Invest Support — Main Stylesheet
    ============================================================ */
 
 /* ---------- Theme variables ---------- */
 :root {
-    --ouro-blue:      #007bff;
-    --ouro-blue-dark: #0069d9;
-    --ouro-gold:      #ffd54a;
-    --ouro-navy:      #0f2744;
+    --Ark-blue:      #007bff;
+    --Ark-blue-dark: #0069d9;
+    --Ark-gold:      #ffd54a;
+    --Ark-navy:      #0f2744;
 }
 
 /* ---------- Base ---------- */
 body {
     font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    background-color: var(--ouro-blue);
+    background-color: var(--Ark-blue);
     color: #fff;
     min-height: 100vh;
     display: flex;
@@ -22,7 +22,7 @@ body {
 
 /* ---------- Navbar ---------- */
 .navbar {
-    background: var(--ouro-blue-dark);
+    background: var(--Ark-blue-dark);
     padding: 1rem 0;
     box-shadow: 0 2px 12px rgba(0, 0, 0, .15);
 }
@@ -38,7 +38,7 @@ body {
 }
 
 .navbar-brand i {
-    color: var(--ouro-gold);
+    color: var(--Ark-gold);
     font-size: 1.25rem;
 }
 
@@ -51,7 +51,7 @@ body {
     height: 56px;
     border-radius: 50%;
     background: #ffffff;
-    color: var(--ouro-blue);
+    color: var(--Ark-blue);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -66,7 +66,7 @@ body {
 .support-fab:hover {
     transform: translateY(-3px) scale(1.05);
     box-shadow: 0 14px 30px rgba(0, 0, 0, .28);
-    color: var(--ouro-blue-dark);
+    color: var(--Ark-blue-dark);
 }
 
 /* ---------- Layout helpers ---------- */
@@ -97,7 +97,7 @@ body {
 .support-card h1 {
     font-size: 1.85rem;
     font-weight: 700;
-    color: var(--ouro-navy);
+    color: var(--Ark-navy);
     margin-bottom: .6rem;
 }
 
